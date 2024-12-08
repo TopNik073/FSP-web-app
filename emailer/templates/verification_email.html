@@ -1,0 +1,14 @@
+{% extends "base_email.html" %}
+
+{% block header_title %}Подтверждение email адреса{% endblock %}
+
+{% block content %}
+<p>Для подтверждения вашего email адреса, пожалуйста, введите следующий код на сайте:</p>
+<div class="token">
+    {{ verification_token }}
+</div>
+{% endblock %}
+
+{% block footer_text %}
+Если вы не регистрировались на нашем сайте, просто проигнорируйте это письмо.
+{% endblock %} 

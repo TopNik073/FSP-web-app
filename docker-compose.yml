@@ -1,0 +1,94 @@
+services:
+  app:
+    build: .
+    container_name: app-container
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+      - REDIS_URL=redis://redis:6379/0
+    ports:
+      - "5000:5000"
+      - "465:465"
+    depends_on:
+      - db
+      - redis
+    networks:
+      - sportevents-network
+
+  db:
+    image: postgres:17.2
+    container_name: db-container
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${DB_PASS}
+      - POSTGRES_DB=hakaton
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - sportevents-network
+
+  redis:
+    image: redis:7
+    container_name: redis-container
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - sportevents-network
+
+  celery_worker:
+    build: .
+    container_name: celery-worker
+    restart: unless-stopped
+    command: python -m celery -A celery_app.celery worker --loglevel=info
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - redis
+      - db
+    networks:
+      - sportevents-network
+
+  celery_beat:
+    build: .
+    container_name: celery-beat
+    restart: unless-stopped
+    command: python -m celery -A celery_app.celery beat --loglevel=info
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - redis
+      - db
+    networks:
+      - sportevents-network
+
+  flower:
+    build: .
+    container_name: flower-container
+    command: celery --app=celery_app.celery flower --port=5555
+    ports:
+      - "5555:5555"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - FLOWER_USER=${FLOWER_USER}
+      - FLOWER_PASS=${FLOWER_PASS}
+    depends_on:
+      - redis
+      - celery_worker
+      - celery_beat
+    networks:
+      - sportevents-network
+
+volumes:
+  postgres-data:
+
+networks:
+  sportevents-network:
+    external: true

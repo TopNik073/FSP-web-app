@@ -1,0 +1,54 @@
+{% extends "base_email.html" %}
+
+{% block header_title %}Напоминание о событии{% endblock %}
+
+{% block content %}
+<div style="background: linear-gradient(135deg, #0066CC, #003366); color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+    <h2 style="margin: 0; font-size: 24px;">{{ event.title }}</h2>
+</div>
+
+<div style="background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 20px; margin: 20px 0;">
+    <div style="margin-bottom: 15px;">
+        <p style="margin: 0; color: #666;">
+            <strong style="color: #0066CC;">Дата начала:</strong> 
+            <span style="font-size: 18px;">{{ event.date_start }}</span>
+        </p>
+    </div>
+    
+    <div style="margin-bottom: 15px;">
+        <p style="margin: 0; color: #666;">
+            <strong style="color: #0066CC;">Место проведения:</strong> 
+            <span style="font-size: 18px;">{{ event.place }}</span>
+        </p>
+    </div>
+
+    {% if event.description %}
+    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e9ecef;">
+        <p style="margin: 0 0 10px 0; color: #0066CC;">
+            <strong>Описание события:</strong>
+        </p>
+        <p style="margin: 0; color: #333; line-height: 1.6;">
+            {{ event.description }}
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+<div style="text-align: center; margin-top: 30px;">
+    <p style="font-size: 18px; color: #0066CC; font-weight: bold;">
+        Не пропустите это событие!
+    </p>
+    {% if event.files %}
+    <p style="color: #666; margin-top: 15px;">
+        К событию прикреплены файлы, которые вы можете посмотреть на сайте.
+    </p>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block footer_text %}
+<div style="color: #666; font-size: 12px; text-align: center;">
+    <p style="margin: 0;">Вы получили это письмо, так как подписались на уведомления о событиях ФСП.</p>
+    <p style="margin: 5px 0 0 0;">Если вы хотите отписаться от уведомлений, перейдите в настройки профиля на сайте.</p>
+</div>
+{% endblock %} 

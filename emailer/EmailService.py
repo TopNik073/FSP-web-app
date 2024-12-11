@@ -12,6 +12,7 @@ load_dotenv()
 
 
 class EmailService:
+    """Класс для отправки email"""
     def __init__(self):
         self.smtp_server = "64.233.161.109"
         self.smtp_port = 465

@@ -1,0 +1,68 @@
+"""update_fsp_events_regions
+
+Revision ID: 841dab8de845
+Revises: f880f1f0801c
+Create Date: 2024-12-10 22:00:56.894105
+
+"""
+
+from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
+
+# revision identifiers, used by Alembic.
+revision: str = "841dab8de845"
+down_revision: Union[str, None] = "f880f1f0801c"
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
+
+# Старые значения enum
+old_regions = [
+    'ADYGEA', 'ALTAI_REPUBLIC', 'BASHKORTOSTAN', 'BURYATIA',
+    'DAGESTAN', 'DONECK', 'INGUSHETIA', 'KABARDINO_BALKARIA',
+    'KALMYKIA', 'KARACHAY_CHERKESSIA', 'KARELIA', 'KOMI',
+    'CRIMEA', 'MARI_EL', 'MORDOVIA', 'SAKHA_YAKUTIA',
+    'NORTH_OSSETIA_ALANIA', 'TATARSTAN', 'TUVA', 'UDMURTIA',
+    'KHAKASSIA', 'CHECHNYA', 'CHUVASHIA', 'LUGANSK',
+    'ALTAY_TERRITORY', 'ZABAIKALSKY_TERRITORY', 'KAMCHATKA_TERRITORY',
+    'KRASNODAR_TERRITORY', 'KRASNOYARSK_TERRITORY', 'PERM_TERRITORY',
+    'PRIMORSKY_TERRITORY', 'STAVROPOL_TERRITORY', 'KHABAROVSK_TERRITORY',
+    'AMUR_REGION', 'ARKHANGELSK_REGION', 'ASTRAKHAN_REGION',
+    'BELGOROD_REGION', 'BRYANSK_REGION', 'VLADIMIR_REGION',
+    'VOLGOGRAD_REGION', 'VOLOGDA_REGION', 'VORONEZH_REGION',
+    'IVANOVO_REGION', 'IRKUTSK_REGION', 'KALININGRAD_REGION',
+    'KALUGA_REGION', 'KEMEROVO_REGION', 'KIROV_REGION',
+    'KOSTROMA_REGION', 'KURGAN_REGION', 'KURSK_REGION',
+    'LENINGRAD_REGION', 'LIPETSK_REGION', 'MAGADAN_REGION',
+    'MOSCOW_REGION', 'MURMANSK_REGION', 'NIZHNY_NOVGOROD_REGION',
+    'NOVGOROD_REGION', 'NOVOSIBIRSK_REGION', 'OMSK_REGION',
+    'ORENBURG_REGION', 'ORYOL_REGION', 'PENZA_REGION',
+    'PSKOV_REGION', 'ROSTOV_REGION', 'RYAZAN_REGION',
+    'SAMARA_REGION', 'SARATOV_REGION', 'SAKHALIN_REGION',
+    'SVERDLOVSK_REGION', 'SMOLENSK_REGION', 'TAMBOV_REGION',
+    'TVER_REGION', 'TOMSK_REGION', 'TULA_REGION',
+    'TYUMEN_REGION', 'ULYANOVSK_REGION', 'CHELYABINSK_REGION',
+    'YAROSLAVL_REGION', 'ZAPOROZHIE', 'HERSONSK',
+    'MOSCOW', 'SAINT_PETERSBURG', 'SEVASTOPOL',
+    'JEWISH_AUTONOMOUS_REGION', 'NENETS_AUTONOMOUS_OKRUG',
+    'KHANTY_MANSI_AUTONOMOUS_OKRUG', 'CHUKOTKA_AUTONOMOUS_OKRUG',
+    'YAMAL_NENETS_AUTONOMOUS_OKRUG'
+]
+
+
+def upgrade() -> None:
+    op.execute("ALTER TYPE regions ADD VALUE 'NONE'")
+    op.execute("ALTER TYPE regions ADD VALUE 'ALL_WORLD'")
+    op.execute("ALTER TYPE regions ADD VALUE 'INTERNATIONALONAL'")
+    op.execute("ALTER TYPE regions ADD VALUE 'INTERREGIONAL'")
+    op.execute("ALTER TYPE regions ADD VALUE 'ALL_RUSSIAN'")
+
+
+def downgrade() -> None:
+    op.execute("ALTER TYPE regions RENAME TO regions_old")
+    op.execute(f"CREATE TYPE regions AS ENUM({', '.join(map(repr, old_regions))})")
+    op.execute("ALTER TABLE fsp_events ALTER COLUMN region TYPE regions USING region::text::regions")
+    op.execute("DROP TYPE regions_old")
+

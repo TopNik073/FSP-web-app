@@ -20,13 +20,13 @@ celery.conf.update(
 
 # Настройка периодических задач
 celery.conf.beat_schedule = {
-    'update-events-daily': {
-        'task': 'celery_app.tasks.update_events',
-        'schedule': crontab(hour=3, minute=0),  # Каждый день в 3:00 UTC
-    },
+    # 'update-events-daily': {
+    #     'task': 'celery_app.tasks.update_events',
+    #     'schedule': crontab(hour=3, minute=0),  # Каждый день в 3:00 UTC
+    # },
     'check-upcoming-events': {
         'task': 'celery_app.tasks.check_upcoming_events',
-        'schedule': crontab(minute='*/15'),  # Каждые 15 минут
+        'schedule': crontab(minute='*/10'),  # Каждые 15 минут
     },
 }
 

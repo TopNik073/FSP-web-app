@@ -1,6 +1,13 @@
 from enum import Enum
 
 class Regions(Enum):
+    # Иные регионы
+    NONE = "Не указан"
+    ALL_RUSSIAN = "Всероссийские"
+    ALL_WORLD = "Всемирные"
+    INTERNATIONAL = "Международные"
+    INTERREGIONAL = "Межрегиональные"
+
     # 22 Республики
     ADYGEA = "Республика Адыгея"
     ALTAI_REPUBLIC = "Республика Алтай"

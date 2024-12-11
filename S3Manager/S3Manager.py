@@ -145,11 +145,3 @@ class S3Manager:
         except Exception as e:
             logger.error(f"Error deleting files from S3: {e}")
             return False
-
-    def get_list_files(self, base_path: str) -> list[str]:
-        return self.s3_client.list_objects_v2(Bucket=self.bucket, Prefix=base_path)["Contents"]
-
-
-if __name__ == "__main__":
-    s3_manager = S3Manager()
-    print(s3_manager.get_list_files("fsp_events/1"))

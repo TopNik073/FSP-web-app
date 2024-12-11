@@ -25,25 +25,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     iputils-ping \
     && rm -rf /var/lib/apt/lists/*
 
-# Установка Google Chrome
-RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
-    && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
-    && apt-get update \
-    && apt-get install -y google-chrome-stable \
-    && rm -rf /var/lib/apt/lists/*
+# # Установка Google Chrome
+# RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+#     && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
+#     && apt-get update \
+#     && apt-get install -y google-chrome-stable \
+#     && rm -rf /var/lib/apt/lists/*
 
-# Установка ChromeDriver (версия 122.0.6261.69)
-RUN mkdir -p /opt/chromedriver \
-    && cd /opt/chromedriver \
-    && wget -q https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/122.0.6261.69/linux64/chromedriver-linux64.zip \
-    && unzip chromedriver-linux64.zip \
-    && mv chromedriver-linux64/chromedriver /usr/local/bin/ \
-    && chmod +x /usr/local/bin/chromedriver \
-    && rm -rf /opt/chromedriver
+# # Установка ChromeDriver (версия 122.0.6261.69)
+# RUN mkdir -p /opt/chromedriver \
+#     && cd /opt/chromedriver \
+#     && wget -q https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/122.0.6261.69/linux64/chromedriver-linux64.zip \
+#     && unzip chromedriver-linux64.zip \
+#     && mv chromedriver-linux64/chromedriver /usr/local/bin/ \
+#     && chmod +x /usr/local/bin/chromedriver \
+#     && rm -rf /opt/chromedriver
 
-# Настройка переменных окружения для Chrome
-ENV CHROME_BIN=/usr/bin/google-chrome
-ENV CHROMEDRIVER_PATH=/usr/local/bin/chromedriver
+# # Настройка переменных окружения для Chrome
+# ENV CHROME_BIN=/usr/bin/google-chrome
+# ENV CHROMEDRIVER_PATH=/usr/local/bin/chromedriver
 
 # Install Python dependencies
 COPY requirements.txt .
@@ -57,5 +57,5 @@ COPY . .
 EXPOSE 5000
 EXPOSE 465
 
-# Run alembic migrations, start gunicorn and the bot
+# Run alembic migrations, start flask app and the bot
 CMD ["bash", "-c", "alembic upgrade head && python bot_start.py & python main.py"]

@@ -60,7 +60,11 @@ def check_upcoming_events():
 
                 notification_time = datetime.fromisoformat(notification['notification_time'])
                 now = datetime.now()
-                next_check = now + timedelta(minutes=15)
+                next_check = now + timedelta(minutes=10)
+
+                # Проверяем, находится ли время уведомления в текущем интервале проверки
+                if not (now <= notification_time <= next_check):
+                    continue
 
                 events = []
                 if notification['event_category'] == 'event' and notification.get('event_id'):
@@ -117,7 +121,7 @@ def check_upcoming_events():
                 updated_user = User(id=user.id)
                 if updated_user.get():
                     updated_user.notifications = user.notifications
-                    updated_user.update()  # или метод, который используется для сохранения в вашей модели
+                    updated_user.update()
 
         logger.info(f"Отправлено {notifications_sent} уведомлений о предстоящих событиях")
         return f"Отправлено {notifications_sent} уведомлений о предстоящих событиях"

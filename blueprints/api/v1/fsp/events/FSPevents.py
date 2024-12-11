@@ -1,6 +1,7 @@
 import logging
 import json
 from datetime import datetime
+import os
 
 from flask import Blueprint, request
 
@@ -111,50 +112,47 @@ def api_update_fsp_event():
     try:
         event_data = request.form.to_dict()
         files = request.files.getlist("files")
-        event: FSPevent = FSPevent(**event_data)
-        
         user = request.user
-        if user.role == UserRoles.REGIONAL_ADMIN and user.region != event.region:
+
+        if user.role == UserRoles.REGIONAL_ADMIN and user.region != event_data.get("region"):
             return get_400("You don't have permission to update event in this region")
 
-        if event.id is None:
+        if event_data.get("id") is None:
             return get_400("Event id is required")
+        
+        if not event_data.get("date_start") or not event_data.get("date_end"):
+            return get_400("Date start and date end are required")
 
-        current_event = FSPevent(id=event.id)
-        if not current_event.get():
+        event_data["date_start"] = datetime.strptime(event_data["date_start"], "%Y-%m-%d")
+        event_data["date_end"] = datetime.strptime(event_data["date_end"], "%Y-%m-%d")
+
+        event: FSPevent = FSPevent(**event_data)
+        if not event.get():
             return get_404("Event not found")
 
-        new_files_list = json.loads(event_data.get("files", "[]"))
-        
-        current_files = current_event.files or []
-        files_to_delete = [
-            f for f in current_files 
-            if not any(nf["path"] == f["path"] for nf in new_files_list)
-        ]
-
-        if files_to_delete:
-            file_paths = [f["path"] for f in files_to_delete]
+        # Удаляем все существующие файлы
+        if event.files:
+            file_paths = [f["path"] for f in event.files]
             s3_manager.delete_files(file_paths)
+            event.files = []
 
+        # Загружаем новые файлы
         if files:
             uploaded_files = s3_manager.upload_files(
                 files,
                 f"fsp_events/{event.id}"
             )
             if uploaded_files:
-                event.files = new_files_list + uploaded_files
+                event.files = uploaded_files
 
         if not event.update():
-            if 'uploaded_files' in locals() and uploaded_files:
-                file_paths = [f["path"] for f in uploaded_files]
-                s3_manager.delete_files(file_paths)
             return get_500("Error in update")
 
         data = event.get_self()
         data["id"] = event.id
         data["date_start"] = event.date_start.strftime('%d.%m.%Y %H:%M')
         data["date_end"] = event.date_end.strftime('%d.%m.%Y %H:%M')
-
+        data["files"] = event.files or []
 
         return get_200(data)
     except Exception as e:
@@ -214,7 +212,7 @@ def api_restore_fsp_event():
         if user.role == UserRoles.REGIONAL_ADMIN and user.region != archive_event.region:
             return get_400("You don't have permission to restore event in this region")
 
-        event = FSPevent(**archive_event.get_self())
+        event = FSPevent(**archive_event.get_self_restore())
         
         if not event.add():
             return get_500("Error in restore event")

@@ -67,7 +67,7 @@ class FSPevent_archive:
         except Exception as e:
             print(f"Error in add: {e}")
             return False
-        
+
     def get(self):
         try:
             with self.sessionmaker() as session:
@@ -75,7 +75,7 @@ class FSPevent_archive:
                 event = session.scalar(query)
                 if event is None:
                     return None
-                
+
                 self.id = str(event.id)
                 self.sport = event.sport
                 self.title = event.title
@@ -99,11 +99,11 @@ class FSPevent_archive:
         except Exception as e:
             print(f"Error in get: {e}")
             return None
-        
+
     def convert_region_to_key(self):
         if isinstance(self.region, Enum):
             return
-        
+
         for reg in Regions:
             if reg.value == self.region or reg.name == self.region:
                 self.region = reg
@@ -112,7 +112,7 @@ class FSPevent_archive:
     def convert_status_to_key(self):
         if isinstance(self.status, Enum):
             return
-        
+
         for status in FSPEventStatus:
             if status.value == self.status or status.name == self.status:
                 self.status = status
@@ -133,6 +133,24 @@ class FSPevent_archive:
             "date_start": self.date_start,
             "date_end": self.date_end,
             "status": self.status.name if self.status else None,
+            "files": self.files if self.files is not None and len(self.files) > 0 else [],
+        }
+
+    def get_self_restore(self) -> dict:
+        return {
+            "sport": "Спортивное программирование",
+            "title": self.title if self.title is not None else "",
+            "description": self.description if self.description is not None else "",
+            "admin_description": self.admin_description if self.admin_description is not None else "",
+            "participants": self.participants if self.participants is not None else "",
+            "participants_num": self.participants_num if self.participants_num is not None else "",
+            "discipline": self.discipline if self.discipline is not None else "",
+            "region": self.region.name if self.region is not None else Regions.NONE.name,
+            "representative": self.representative if self.representative is not None else "",
+            "place": self.place if self.place is not None else "",
+            "date_start": self.date_start if self.date_start is not None else "",
+            "date_end": self.date_end if self.date_end is not None else "",
+            "status": self.status.name if self.status else FSPEventStatus.CONSIDERATION.name,
             "files": self.files if self.files is not None and len(self.files) > 0 else [],
         }
 
@@ -157,7 +175,7 @@ class FSPevent_archive:
         except Exception as e:
             print(f"Error in get_by_filters: {e}")
             return []
-        
+
     def get_from_model(self, model):
         return {
             "id": model.id,
@@ -186,7 +204,7 @@ class FSPevent_archive:
             res["region"] = self.region
 
         return res
-    
+
     def delete(self) -> bool:
         try:
             with self.sessionmaker() as session:

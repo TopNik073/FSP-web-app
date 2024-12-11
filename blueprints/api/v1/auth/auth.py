@@ -23,7 +23,7 @@ def login():
         if not email or not password:
             return get_400("Email and password are required")
         
-        user: User = User(email=email, auto_add=False)
+        user: User = User(email=email)
         if user.get() is None:
             return get_404("User not found")
         
@@ -33,7 +33,12 @@ def login():
         if not user.is_verified:
             return get_400("User is not verified")
         
-        return get_200(user.login())
+        data = user.get_self()
+        data["id"] = user.id
+        data.pop("password")
+        data["token"] = user.generate_token()
+        
+        return get_200(data)
     except Exception as e:
         logger.error(f"Error in login: {e}")
         return get_500("Login failed")
@@ -69,7 +74,7 @@ def register():
         return get_500("Register failed")
     
 
-@auth.post("/forgot-password")
+@auth.post("/forgot_password")
 def forgot_password():
     try:
         email = request.form.get("email")
@@ -100,6 +105,7 @@ def verify_token():
         token = request.form.get("verify_token")
         token_type = request.form.get("token_type")
         password = request.form.get("password")
+        data = {}
 
         if not email or not token or not token_type:
             return get_400("Email, token and token type are required")
@@ -118,18 +124,23 @@ def verify_token():
             if password is None:
                 return get_400("Password is required for reset password token")
             else:
-                user.password = generate_password_hash(password)
+                data["password"] = password
         
         if token.expires_at < datetime.now():
+            token.delete()
             return get_400("Token expired")
         
         user.get()
-        user.is_verified = True
-        user.update()
+        data["is_verified"] = True
+        user.update(data)
 
         token.delete()
 
-        return get_200(user.login())
+        user_data = user.get_self()
+        user_data.pop("password")
+        user_data["token"] = user.generate_token()
+
+        return get_200(user_data)
     except Exception as e:
         logger.error(f"Error in verify_token: {e}")
         return get_500("Token verification failed")

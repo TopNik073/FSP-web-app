@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 import uuid
-from jwt import encode
+import jwt
+import json
 import os
 import random
 import string
@@ -20,20 +21,21 @@ from DB.models.enums.regions import Regions
 
 load_dotenv()
 
+
 class User:
     def __init__(
-        self,
-        id: str | None = None,
-        is_verified: bool = False,
-        name: str | None = None,
-        email: str = None,
-        password: str = None,
-        tg_id: int = None,
-        username: str = None,
-        region: Regions | None = None,
-        role: UserRoles | None = None,
-        notifications: list[dict | None] = None,
-        auto_add: bool = False,
+            self,
+            id: str | None = None,
+            is_verified: bool = False,
+            name: str | None = None,
+            email: str = None,
+            password: str = None,
+            tg_id: int = None,
+            username: str = None,
+            region: Regions | None = None,
+            role: UserRoles | None = None,
+            notifications: list[dict | None] = None,
+            auto_add: bool = False,
     ):
         self.sessionmaker: sessionmaker = SessionMaker().session_factory
 
@@ -44,7 +46,7 @@ class User:
         self.email: str = email
         self.password: str = password
 
-        self.tg_id: int = tg_id
+        self.tg_id: int = int(tg_id) if tg_id is not None else None
         self.username: str = username
 
         self.notifications: list = notifications if notifications is not None else []
@@ -79,7 +81,7 @@ class User:
         except Exception as e:
             print(e)
             raise e
-        
+
     def get_by_role(self, role: UserRoles):
         try:
             with self.sessionmaker() as session:
@@ -93,11 +95,67 @@ class User:
                     temp_user = User()
                     temp_user.get_from_model(user)
                     res.append(temp_user)
-                
+
                 return res
         except Exception as e:
             print(e)
             raise e
+
+    def get_by_region(self, region: Regions):
+        try:
+            with self.sessionmaker() as session:
+                query = select(Users).filter_by(region=region.name)
+                users = session.scalars(query).first()
+                if users is None:
+                    return None
+
+                self.get_from_model(users)
+                self.convert_region_to_key()
+                self.convert_role_to_key()
+
+                return self
+        except Exception as e:
+            print(e)
+            raise e
+
+    def check_update(self, data: dict):
+        if data.get("name") is not None:
+            self.name = data["name"]
+
+        if data.get("is_verified") is not None:
+            if isinstance(data["is_verified"], str):
+                self.is_verified = data["is_verified"] == "true"
+            else:
+                self.is_verified = data["is_verified"]
+
+        if data.get("email") is not None:
+            self.email = data["email"]
+
+        if data.get("password") is not None:
+            self.password = generate_password_hash(data["password"])
+
+        if data.get("tg_id") is not None:
+            self.tg_id = int(data["tg_id"])
+
+        if data.get("username") is not None:
+            self.username = data["username"]
+
+        if data.get("role") is not None:
+            self.role = data["role"]
+            self.convert_role_to_key()
+
+        if data.get("region") is not None:
+            self.region = data["region"]
+            self.convert_region_to_key()
+
+        if data.get("notifications") is not None:
+            if isinstance(data["notifications"], list):
+                self.notifications = data["notifications"]
+            else:
+                try:
+                    self.notifications = json.loads(data["notifications"])
+                except:
+                    raise ValueError("Notifications must be a list or a valid JSON string")
 
     def add(self):
         try:
@@ -112,7 +170,7 @@ class User:
         except Exception as e:
             print(e)
             raise e
-        
+
     def get_from_model(self, model: Users):
         self.id = str(model.id)
         self.is_verified = model.is_verified
@@ -126,20 +184,20 @@ class User:
         self.notifications = model.notifications
         self.created_at = model.created_at
         self.updated_at = model.updated_at
-        
+
     def convert_region_to_key(self):
         if isinstance(self.region, Enum):
             return
-        
+
         for reg in Regions:
             if reg.value == self.region or reg.name == self.region:
                 self.region = reg
                 return
-            
+
     def convert_role_to_key(self):
         if isinstance(self.role, Enum):
             return
-        
+
         for role in UserRoles:
             if role.value == self.role or role.name == self.role:
                 self.role = role
@@ -154,9 +212,9 @@ class User:
             with self.sessionmaker() as session:
                 password = self.gen_password()
                 fsp_admin = Users(
-                    email=self.email, 
-                    region=self.region.name, 
-                    name=self.name, 
+                    email=self.email,
+                    region=self.region.name,
+                    name=self.name,
                     password=self.password,
                     role=role,
                     is_verified=True,
@@ -169,16 +227,17 @@ class User:
             print(f"Error adding FSP admin: {e}")
             return None
 
-    def update(self) -> bool:
+    def update(self, data: dict) -> bool:
         try:
+            self.check_update(data)
             with self.sessionmaker() as session:
-                session.query(Users).filter_by(**self.get_filter_by()).update(self.get_self())
+                session.query(Users).filter_by(id=self.id).update(self.get_self())
                 session.commit()
 
             return True
         except Exception as e:
             print(e)
-            return False
+            raise e
 
     def delete(self) -> bool:
         try:
@@ -193,45 +252,45 @@ class User:
         except Exception as e:
             print(e)
             return False
-        
+
     def add_notification(self, sport: str, search: str) -> list[dict]:
         try:
             with self.sessionmaker() as session:
                 user = session.query(Users).filter_by(**self.get_filter_by()).first()
                 if not user:
                     raise ValueError("User not found")
-                
+
                 current_notifications = user.notifications or []
-                
+
                 new_notification = {
                     "id": str(uuid.uuid4()),
                     "sport": sport,
                     "search": search
                 }
-                
+
                 new_notifications = current_notifications + [new_notification]
-                
+
                 session.query(Users).filter_by(**self.get_filter_by()).update({
                     "notifications": new_notifications
                 }, synchronize_session=False)
-                
+
                 session.commit()
-                
+
                 self.notifications = new_notifications
-                
+
                 return new_notifications
-                
+
         except Exception as e:
             print(f"Error adding notification: {e}")
             raise e
-        
+
     def get_notifications(self):
         try:
             with self.sessionmaker() as session:
                 user = session.query(Users).filter_by(**self.get_filter_by()).first()
                 if not user:
                     raise ValueError("User not found")
-                
+
                 return user.notifications
         except Exception as e:
             print(f"Error getting notifications: {e}")
@@ -258,12 +317,12 @@ class User:
             "password": self.password,
             "tg_id": self.tg_id,
             "username": self.username,
-            "notifications": self.notifications,
+            "notifications": self.notifications if isinstance(self.notifications, list) else [],
             "region": self.region.name if self.region is not None else None,
             "role": self.role.name if self.role is not None else None,
         }
-    
-    def get_self_api(self):
+
+    def get_token_data(self):
         return {
             "id": str(self.id),
             "email": self.email,
@@ -274,22 +333,19 @@ class User:
     def gen_password(self) -> str:
         chars = string.ascii_letters + string.digits  # a-z + A-Z + 0-9
         password = ''.join(random.choice(chars) for _ in range(10))
-        
+
         self.password = generate_password_hash(password)
         return password
 
-    def login(self) -> dict:
-        data = self.get_self_api()
+    def generate_token(self) -> str:
+        data = self.get_token_data()
         data["expired_at"] = int((datetime.now(timezone.utc) + timedelta(days=7)).timestamp())
-        self.token = encode(
-            data, 
-            key=os.environ.get("JWT_SECRET"), 
+        token = jwt.encode(
+            data,
+            key=os.environ.get("JWT_SECRET"),
             algorithm="HS256"
         )
-        return {
-            "token": self.token,
-            "user": self.get_self_api()
-        }
+        return token
 
     def remove_notification(self, notification_id: str):
         try:
@@ -297,27 +353,27 @@ class User:
                 user = session.query(Users).filter_by(**self.get_filter_by()).first()
                 if not user:
                     raise ValueError("User not found")
-                
+
                 current_notifications = user.notifications or []
-                
+
                 new_notifications = [
-                    notif for notif in current_notifications 
+                    notif for notif in current_notifications
                     if notif.get('id') != notification_id
                 ]
-                
+
                 if len(current_notifications) == len(new_notifications):
                     raise ValueError(f"Notification with id {notification_id} not found")
-                
+
                 session.query(Users).filter_by(**self.get_filter_by()).update({
                     "notifications": new_notifications
                 }, synchronize_session=False)
-                
+
                 session.commit()
-                
+
                 self.notifications = new_notifications
-                
+
                 return True
-                
+
         except Exception as e:
             print(f"Error removing notification: {e}")
             raise e

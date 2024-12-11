@@ -3,22 +3,28 @@ from datetime import datetime, timedelta
 
 from flask import Blueprint, request
 from DB.user import User
+from DB.models.enums.user_roles import UserRoles
 from DB.FSPevent import FSPevent
 
-from blueprints.api.v1.responses import get_200, get_400, get_500
+from blueprints.api.v1.responses import get_200, get_400, get_403, get_404, get_500
 from blueprints.jwt_guard import jwt_guard, check_user, check_admin
+
+from emailer.EmailService import EmailService
 
 user = Blueprint("user", __name__)
 logger = logging.getLogger(__name__)
+emailer = EmailService()
 
 
 @user.post("/profile")
 @jwt_guard
 @check_user
 def get_user():
+    """Получение информации о пользователе (профиль)"""
     try:
         user: User = request.user
         data = user.get_self()
+        data.pop("password")
         data["id"] = user.id
 
         return get_200(data)
@@ -31,18 +37,21 @@ def get_user():
 @jwt_guard
 @check_admin
 def add_user():
+    """Добавление нового пользователя админом"""
     try:
         user: User = User(**request.form.to_dict())
-        user.password = user.gen_password()
+        new_password = user.gen_password()
+        user.is_verified = True
         if user.get() is not None:
             return get_400("User already exists")
 
         if not user.add():
             return get_500("Error in add_user")
 
+        emailer.send_send_password_email(user.email, new_password)
+
         data = user.get_self()
         data.pop("password")
-        data.pop("token")
         data.pop("notifications")
         data["id"] = user.id
 
@@ -54,20 +63,19 @@ def add_user():
 
 @user.post("/update")
 @jwt_guard
+@check_user
 def update_user():
+    """Обновление информации о пользователе"""
     try:
-        is_user: User = User(id=request.form.get("id"))
-        if is_user.get() is None:
-            return get_400("User not found")
+        user: User = request.user
+        user_data = request.form.to_dict()
 
-        user: User = User(**request.form.to_dict())
-
-        if not user.update():
+        if not user.update(user_data):
             return get_500("Error in update_user")
 
         data = user.get_self()
         data.pop("password")
-        data.pop("notifications")
+        data["token"] = user.generate_token()
         data["id"] = user.id
 
         return get_200(data)
@@ -76,10 +84,44 @@ def update_user():
         return get_500("Error in update_user")
 
 
+@user.post("/update_admin")
+@jwt_guard
+@check_admin
+def update_admin():
+    """Обновление информации о пользователе админом"""
+    try:
+        admin: User = request.user
+        user_data = request.form.to_dict()
+
+        if admin.role != UserRoles.ADMIN:
+            return get_403("Access denied")
+
+        if not user_data.get("id"):
+            return get_400("User id is required")
+
+        user: User = User(id=user_data.get("id"))
+        if user.get() is None:
+            return get_404("User not found")
+
+        if not user.update(user_data):
+            return get_500("Error in update_user")
+
+        data = user.get_self()
+        data.pop("password")
+        data["token"] = user.generate_token()
+        data["id"] = user.id
+
+        return get_200(data)
+    except Exception as e:
+        logger.error(f"Error in update_admin: {e}")
+        return get_500("Error in update_admin")
+
+
 @user.post("/get")
 @jwt_guard
 @check_admin
 def get_users_by_role():
+    """Получение пользователей по роли"""
     try:
         role = request.form.get("role")
         users = User().get_by_role(role)
@@ -87,8 +129,6 @@ def get_users_by_role():
         for user in users:
             temp = user.get_self()
             temp.pop("password")
-            temp.pop("token")
-            temp.pop("notifications")
             temp["id"] = user.id
             data.append(temp)
 
@@ -102,6 +142,7 @@ def get_users_by_role():
 @jwt_guard
 @check_user
 def get_subscriber():
+    """Подписка на событие"""
     try:
         user: User = request.user
         event_id = request.form.get("id")
@@ -135,7 +176,7 @@ def get_subscriber():
         }
 
         user.notifications.append(notification)
-        user.update()
+        user.update({})
 
         res = []
         for notification in user.notifications:
@@ -157,25 +198,25 @@ def get_subscriber():
 @jwt_guard
 @check_user
 def unsubscribe():
+    """Отписка от события"""
     try:
         user: User = request.user
         event_id = request.form.get("id")
+        res = []
 
         for notification in user.notifications:
             if notification["event_id"] == event_id:
                 user.notifications.remove(notification)
-                user.update()
+                user.update({})
+
+                event = FSPevent(id=notification["event_id"])
+                if event.get() is None:
+                    return get_200(res)
+
+                data = event.get_self()
+                data["id"] = event.id
+                res.append(data)
                 break
-
-        res = []
-        for notification in user.notifications:
-            event = FSPevent(id=notification["event_id"])
-            if event.get() is None:
-                continue
-
-            data = event.get_self()
-            data["id"] = event.id
-            res.append(data)
 
         return get_200(res)
     except Exception as e:
@@ -187,6 +228,7 @@ def unsubscribe():
 @jwt_guard
 @check_user
 def set_up_notification():
+    """Настройка уведомлений о событии"""
     try:
         user: User = request.user
         event_id = request.form.get("id")
@@ -202,9 +244,10 @@ def set_up_notification():
                 notification["telegram"] = telegram
                 notification["email"] = email
                 if notification_time:
-                    notification["notification_time"] = datetime.strptime(notification_time, "%Y-%m-%d %H:%M").isoformat()
+                    notification["notification_time"] = datetime.strptime(notification_time,
+                                                                          "%Y-%m-%d %H:%M").isoformat()
 
-                user.update()
+                user.update({})
                 break
 
         res = []
@@ -221,6 +264,29 @@ def set_up_notification():
     except Exception as e:
         logger.error(f"Error in set_up_notification: {e}")
         return get_500("Error in set_up_notification")
+
+
+@user.post("/get_notifications")
+@jwt_guard
+@check_user
+def get_notifications():
+    """Получение событий по уведомлениям"""
+    try:
+        user: User = request.user
+        res = []
+        for notification in user.notifications:
+            event = FSPevent(id=notification["event_id"])
+            if event.get() is None:
+                continue
+
+            data = event.get_self()
+            data["id"] = event.id
+            res.append(data)
+
+        return get_200(res)
+    except Exception as e:
+        logger.error(f"Error in get_notifications: {e}")
+        return get_500("Error in get_notifications")
 
 # notifications = [{
 #     "sport": str,

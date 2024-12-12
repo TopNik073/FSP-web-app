@@ -159,16 +159,16 @@ async def main():
             added_counter.append((user.email, password))
 
     logger.info(f"(RegionsParser) Добавлено {len(added_counter)} контактов из {all_contacts}")
-    for email, password in added_counter:
-        response = email_service.send_send_password_email(
-            email if os.getenv('TEST', 'false').lower() == 'false' else "andreisafarov091@gmail.com",
-            password)  # TODO: отправлять на email
-        print(response)
-        if not response:
-            logger.error(f"(RegionsParser) Ошибка при отправке письма на {email}")
-        await asyncio.sleep(1)
-        if os.getenv('TEST', 'false').lower() == 'true':
-            break
+    # for email, password in added_counter:
+    #     response = email_service.send_send_password_email(
+    #         email if os.getenv('TEST', 'false').lower() == 'false' else "andreisafarov091@gmail.com",
+    #         password)  # TODO: отправлять на email
+    #     print(response)
+    #     if not response:
+    #         logger.error(f"(RegionsParser) Ошибка при отправке письма на {email}")
+    #     await asyncio.sleep(1)
+    #     if os.getenv('TEST', 'false').lower() == 'true':
+    #         break
 
     logger.info("(RegionsParser) Парсинг и отправка писем завершены")
 

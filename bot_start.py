@@ -24,6 +24,9 @@ async def main():
     logger.info("Начало парсинга результатов")
     await regions_parser.main()
 
+    logger.info("Начало добавления тестовых событий")
+    await test_fsp_events.main()
+
     logger.info("Запуск бота")
     await dp.start_polling(bot)
 

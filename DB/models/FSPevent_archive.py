@@ -6,7 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from DB.models.Base import Base
 from DB.models.enums.regions import Regions
-from DB.models.FSPevent_status import FSPEventStatus
+from DB.models.enums.FSPevent_status import FSPEventStatus
 
 class FSPevent_archive(Base):
     __tablename__ = "fsp_events_archive"

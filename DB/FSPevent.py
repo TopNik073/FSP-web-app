@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 from DB.DataBase import SessionMaker
 from DB.models.FSPevent import FSPEvents
 from DB.models.enums.regions import Regions
-from DB.models.FSPevent_status import FSPEventStatus
+from DB.models.enums.FSPevent_status import FSPEventStatus
 
 
 class FSPevent:

@@ -6,7 +6,7 @@ from sqlalchemy.dialects.postgresql import UUID, TEXT, JSONB
 
 from DB.models.Base import Base, get_datetime_UTC
 from DB.models.enums.regions import Regions
-from DB.models.FSPevent_status import FSPEventStatus
+from DB.models.enums.FSPevent_status import FSPEventStatus
 
 
 class FSPEvents(Base):

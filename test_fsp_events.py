@@ -1,10 +1,9 @@
 from datetime import datetime, timedelta
 import logging
-import os
 from dotenv import load_dotenv
 from DB.FSPevent import FSPevent
 from DB.models.enums.regions import Regions
-from DB.models.FSPevent_status import FSPEventStatus
+from DB.models.enums.FSPevent_status import FSPEventStatus
 
 # Загружаем переменные окружения
 load_dotenv()

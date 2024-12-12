@@ -1,15 +1,16 @@
 import logging
-import json
 from datetime import datetime
-import os
 
 from flask import Blueprint, request
 
 from DB.FSPevent import FSPevent
 from DB.FSPevent_archive import FSPevent_archive
 from DB.models.enums.user_roles import UserRoles
+from DB.models.enums.FSPevent_status import FSPEventStatus
+
 from blueprints.api.v1.responses import get_200, get_400, get_404, get_500
 from blueprints.jwt_guard import jwt_guard, check_admin
+
 from S3Manager.S3Manager import S3Manager
 
 fsp_events = Blueprint("fsp_events", __name__)
@@ -63,6 +64,7 @@ def api_get_fsp_events():
 def api_add_fsp_event():
     try:
         event_data = request.form.to_dict()
+        event_data["status"] = FSPEventStatus.CONSIDERATION
         files = request.files.getlist("files")
         
         event: FSPevent = FSPevent(**event_data)
@@ -74,6 +76,18 @@ def api_add_fsp_event():
         if user.role == UserRoles.REGIONAL_ADMIN and user.region != event.region:
             return get_400("You don't have permission to add event in this region")
         
+        if event.date_start is None or event.date_end is None:
+            return get_400("Date start and date end are required")
+
+        event.date_start = datetime.strptime(event.date_start, "%Y-%m-%d")
+        event.date_end = datetime.strptime(event.date_end, "%Y-%m-%d")
+
+        if event.date_start > event.date_end:
+            return get_400("Date start is greater than date end")
+
+        if event.date_start < datetime.now() or event.date_end < datetime.now():
+            return get_400("Date start or date end is in the past")
+
         if not event.add():
             return get_500("Error adding event")
 

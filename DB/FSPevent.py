@@ -229,8 +229,9 @@ class FSPevent:
             "status": self.status.name if self.status else None,
         }
 
-    def update(self) -> bool:
+    def update(self, data: dict) -> bool:
         try:
+            self.check_update(data)
             with self.sessionmaker() as session:
                 query = update(FSPEvents).filter_by(id=self.id).values(**self.get_self())
                 session.execute(query)
@@ -259,3 +260,45 @@ class FSPevent:
         except Exception as e:
             print(e)
             raise e
+        
+    def check_update(self, data: dict):
+        if data.get("title") is not None:
+            self.title = data["title"]
+
+        if data.get("description") is not None:
+            self.description = data["description"]
+
+        if data.get("admin_description") is not None:
+            self.admin_description = data["admin_description"]
+
+        if data.get("participants") is not None:
+            self.participants = data["participants"]
+
+        if data.get("participants_num") is not None:
+            self.participants_num = data["participants_num"]
+
+        if data.get("discipline") is not None:
+            self.discipline = data["discipline"]
+
+        if data.get("region") is not None:
+            self.region = data["region"]
+            self.convert_region_to_key()
+
+        if data.get("representative") is not None:
+            self.representative = data["representative"]
+
+        if data.get("files") is not None and isinstance(data["files"], list):
+            self.files = data["files"]
+
+        if data.get("place") is not None:
+            self.place = data["place"]
+
+        if data.get("status") is not None:
+            self.status = data["status"]
+            self.convert_status_to_key()
+
+        if data.get("date_start") is not None:
+            self.date_start = datetime.strptime(data["date_start"], "%Y-%m-%d")
+
+        if data.get("date_end") is not None:
+            self.date_end = datetime.strptime(data["date_end"], "%Y-%m-%d")

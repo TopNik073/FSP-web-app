@@ -27,6 +27,7 @@ def api_get_fsp_events():
         date_start = request.form.get("date_start")
         date_end = request.form.get("date_end")
         discipline = request.form.get("discipline")
+        region = request.form.get("region")
         status = request.form.get("status")
 
         if date_start:
@@ -35,9 +36,9 @@ def api_get_fsp_events():
             date_end = datetime.strptime(date_end, "%Y-%m-%d")
 
         if archive:
-            event = FSPevent_archive(date_start=date_start, date_end=date_end, discipline=discipline)
+            event = FSPevent_archive(date_start=date_start, date_end=date_end, discipline=discipline, region=region)
         else:
-            event = FSPevent(date_start=date_start, date_end=date_end, discipline=discipline, status=status)
+            event = FSPevent(date_start=date_start, date_end=date_end, discipline=discipline, status=status, region=region)
 
         events = event.get_by_filters()
         res = []

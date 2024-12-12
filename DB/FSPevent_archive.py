@@ -218,7 +218,7 @@ class FSPevent_archive:
             res["discipline"] = self.discipline
 
         if self.region is not None:
-            res["region"] = self.region
+            res["region"] = self.region.name
 
         return res
 

@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timedelta
 import logging
 from dotenv import load_dotenv
@@ -300,21 +301,24 @@ test_events = [
     )
 ]
 
-# Добавляем новые записи
-for i, event in enumerate(test_events, 1):
-    try:
-        user = User()
-        if user.get_by_region(event.region) is not None:
-            event.representative = user.id
 
-        if event.get_by_self() is not None:
-            logger.info(f"(Test_fsp_events) Событие {event.title} уже добавлено")
-            continue
+async def main():
+    # Добавляем новые записи
+    await asyncio.sleep(20)
+    for i, event in enumerate(test_events, 1):
+        try:
+            user = User()
+            if user.get_by_region(event.region) is not None:
+                event.representative = user.id
 
-        event.add()
-        logger.info(f"(Test_fsp_events) Добавлено событие {i}: {event.title}")
+            if event.get_by_self() is not None:
+                logger.info(f"(Test_fsp_events) Событие {event.title} уже добавлено")
+                continue
 
-    except Exception as e:
-        logger.error(f"(Test_fsp_events) Ошибка при добавлении события {event.title}: {str(e)}")
+            event.add()
+            logger.info(f"(Test_fsp_events) Добавлено событие {i}: {event.title}")
 
-logger.info("(Test_fsp_events) Все тестовые события успешно добавлены в базу данных")
+        except Exception as e:
+            logger.error(f"(Test_fsp_events) Ошибка при добавлении события {event.title}: {str(e)}")
+
+    logger.info("(Test_fsp_events) Все тестовые события успешно добавлены в базу данных")

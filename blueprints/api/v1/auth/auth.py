@@ -137,6 +137,7 @@ def verify_token():
         token.delete()
 
         user_data = user.get_self()
+        user_data["id"] = user.id
         user_data.pop("password")
         user_data["token"] = user.generate_token()
 

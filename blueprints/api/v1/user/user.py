@@ -168,7 +168,7 @@ def delete_user():
             return get_404("User not found")
 
         user.delete()
-        return get_200()
+        return get_200({})
     except Exception as e:
         logger.error(f"Error in delete_user: {e}")
         return get_500("Error in delete_user")
@@ -248,6 +248,15 @@ def unsubscribe():
                 event = FSPevent(id=notification["event_id"])
                 if event.get() is None:
                     return get_200(res)
+                
+                if event.representative is not None:
+                    representative = User(event.representative)
+                    if user.get():
+                        user_data = representative.get_self()
+                        user_data.pop("password")
+                        user_data["id"] = representative.id
+
+                        event.representative = user_data
 
                 data = event.get_self()
                 data["id"] = event.id
@@ -292,6 +301,15 @@ def set_up_notification():
             if event.get() is None:
                 continue
 
+            if event.representative is not None:
+                representative = User(event.representative)
+                if user.get():
+                    user_data = representative.get_self()
+                    user_data.pop("password")
+                    user_data["id"] = representative.id
+
+                    event.representative = user_data
+
             data = event.get_self()
             data["id"] = event.id
             res.append(data)
@@ -314,6 +332,15 @@ def get_notifications():
             event = FSPevent(id=notification["event_id"])
             if event.get() is None:
                 continue
+
+            if event.representative is not None:
+                representative = User(event.representative)
+                if representative.get():
+                    user_data = representative.get_self()
+                    user_data.pop("password")
+                    user_data["id"] = representative.id
+
+                    event.representative = user_data
 
             data = event.get_self()
             data["id"] = event.id

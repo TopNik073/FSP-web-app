@@ -1,12 +1,14 @@
+import os
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+import jwt
 
 from flask import Blueprint, request
 from DB.user import User
 from DB.models.enums.user_roles import UserRoles
 from DB.FSPevent import FSPevent
 
-from blueprints.api.v1.responses import get_200, get_400, get_403, get_404, get_500
+from blueprints.api.v1.responses import get_200, get_400, get_401, get_403, get_404, get_500
 from blueprints.jwt_guard import jwt_guard, check_user, check_admin
 
 from emailer.EmailService import EmailService
@@ -118,12 +120,25 @@ def update_admin():
 
 
 @user.post("/get")
-@jwt_guard
-@check_admin
 def get_users_by_role():
     """Получение пользователей по роли"""
     try:
         role = request.form.get("role")
+
+        if role == "USER" or role == "ADMIN":
+            token = request.headers.get('Authorization')
+            if not token:
+                return get_401("No token provided")
+
+            
+            payload = jwt.decode(token, os.getenv('JWT_SECRET'), algorithms=['HS256'])
+
+            # Проверяем срок действия
+            if 'expired_at' in payload:
+                exp_timestamp = payload['expired_at']
+                if datetime.fromtimestamp(exp_timestamp, tz=timezone.utc) < datetime.now(timezone.utc):
+                    return get_401("Token has expired")
+            
         users = User().get_by_role(role)
         data = []
         for user in users:
@@ -136,6 +151,27 @@ def get_users_by_role():
     except Exception as e:
         logger.error(f"Error in get_users_by_role: {e}")
         return get_500("Error in get_users_by_role")
+    
+
+@user.post("/delete")
+@jwt_guard
+@check_admin
+def delete_user():
+    """Удаление пользователя админом"""
+    try:
+        user_id = request.form.get("id")
+        if not user_id:
+            return get_400("User id is required")
+
+        user: User = User(id=user_id)
+        if user.get() is None:
+            return get_404("User not found")
+
+        user.delete()
+        return get_200()
+    except Exception as e:
+        logger.error(f"Error in delete_user: {e}")
+        return get_500("Error in delete_user")
 
 
 @user.post("/subscribe")

@@ -46,6 +46,7 @@ def api_get_fsp_events():
             data["id"] = event.id
             data["date_start"] = event.date_start.strftime('%d.%m.%Y %H:%M')
             data["date_end"] = event.date_end.strftime('%d.%m.%Y %H:%M')
+            data["region"] = event.region.value if event.region is not None else None
             data["files"] = event.files or []
             
             res.append(data)

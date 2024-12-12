@@ -30,11 +30,11 @@ class User:
             name: str | None = None,
             email: str = None,
             password: str = None,
-            tg_id: int = None,
+            tg_id: int | None = None,
             username: str = None,
             region: Regions | None = None,
             role: UserRoles | None = None,
-            notifications: list[dict | None] = None,
+            notifications: list[dict] = None,
             auto_add: bool = False,
     ):
         self.sessionmaker: sessionmaker = SessionMaker().session_factory

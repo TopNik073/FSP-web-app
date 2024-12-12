@@ -99,6 +99,23 @@ class FSPevent_archive:
         except Exception as e:
             print(f"Error in get: {e}")
             return None
+        
+    def get_by_self(self):
+        try:
+            with self.sessionmaker() as session:
+                query = select(FSPevent_archive_model).filter(
+                    FSPevent_archive_model.title == self.title,
+                    FSPevent_archive_model.place == self.place,
+                    FSPevent_archive_model.participants == self.participants,
+                    FSPevent_archive_model.discipline == self.discipline,
+                    FSPevent_archive_model.date_start == self.date_start,
+                    FSPevent_archive_model.date_end == self.date_end,
+                )
+                event = session.execute(query).scalar()
+                return event
+        except Exception as e:
+            print(f"Error in get_by_self: {e}")
+            return None
 
     def convert_region_to_key(self):
         if isinstance(self.region, Enum):

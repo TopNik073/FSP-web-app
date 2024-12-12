@@ -13,13 +13,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 async def main():
-    logger.info("Начало парсинга спортивных событий")
-    await sportevents_parser.main()
-    
+    # logger.info("Начало парсинга спортивных событий")
+    # await sportevents_parser.main()
+
     logger.info("Начало парсинга архива")
     await archive_parser.main()
-    
+
     logger.info("Начало парсинга результатов")
     await regions_parser.main()
 

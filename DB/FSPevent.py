@@ -101,6 +101,21 @@ class FSPevent:
         except Exception as e:
             print(e)
             return None
+        
+    def get_by_self(self):
+        try:
+            with self.sessionmaker() as session:
+                query = select(FSPEvents).filter(
+                    FSPEvents.title == self.title,
+                    FSPEvents.description == self.description,
+                    FSPEvents.place == self.place,
+                    FSPEvents.region == self.region.name,
+                )
+                event: FSPEvents | None = session.execute(query).scalar()
+                return event
+        except Exception as e:
+            print(f"Error in get_by_self: {e}")
+            return None
 
     def convert_region_to_key(self):
         if isinstance(self.region, Enum):

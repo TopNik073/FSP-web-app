@@ -14,7 +14,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-load_dotenv()   
+load_dotenv()
+
+
 def parse_regions():
     try:
         url = "https://fsp-russia.com/region/regions/"
@@ -33,7 +35,6 @@ def parse_regions():
             if len(moscow_tds) >= 2:  # Должно быть как минимум 2 блока: заголовки и данные Москвы
                 moscow_td = moscow_tds[1]  # Берем второй блок с данными
                 logger.debug("Найден блок contact_td для Москвы")
-                logger.debug(f"HTML блока Москвы: {moscow_td}")
 
                 try:
                     # Находим данные в соответствующих блоках
@@ -137,33 +138,40 @@ def parse_contact_td(contact_td):
             'contact': contact,
         }
     except Exception as e:
-        logger.error(f"Ошибка при парсинге contact_td: {str(e)}")
+        logger.error(f"(RegionsParser) Ошибка при парсинге contact_td: {str(e)}")
         return None
 
 
 async def main():
     all_contacts = 0
     added_counter = []
+    email_service = EmailService()
+
     for contact in parse_regions():
         all_contacts += 1
         user: User = User(email=contact["contact"], name=contact["leader"], region=contact["region"])
+        if user.get() is not None:
+            logger.info(f"(RegionsParser) Пользователь {user.email} уже существует")
+            continue
+
         password = user.add_fsp_admin()
         if password is not None:
             added_counter.append((user.email, password))
 
-    print(f"Добавлено {len(added_counter)} контактов из {all_contacts}")
-    # for email, password in added_counter:
-    #     email_service = EmailService()
-    #     response = email_service.send_send_password_email(email if os.getenv('TEST', 'false').lower() == 'false' else "andreisafarov091@gmail.com", password) # TODO: отправлять на email
-    #     if not response:
-    #         logger.error(f"Ошибка при отправке письма на {email}")
-    #     await asyncio.sleep(1)
-    #     if os.getenv('TEST', 'false').lower() == 'true':
-    #         break
+    logger.info(f"(RegionsParser) Добавлено {len(added_counter)} контактов из {all_contacts}")
+    for email, password in added_counter:
+        response = email_service.send_send_password_email(
+            email if os.getenv('TEST', 'false').lower() == 'false' else "andreisafarov091@gmail.com",
+            password)  # TODO: отправлять на email
+        print(response)
+        if not response:
+            logger.error(f"(RegionsParser) Ошибка при отправке письма на {email}")
+        await asyncio.sleep(1)
+        if os.getenv('TEST', 'false').lower() == 'true':
+            break
 
-    logger.info("Парсинг и отправка писем завершены")
+    logger.info("(RegionsParser) Парсинг и отправка писем завершены")
 
 
 if __name__ == "__main__":
     asyncio.run(main())
-

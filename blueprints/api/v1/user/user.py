@@ -25,9 +25,7 @@ def get_user():
     """Получение информации о пользователе (профиль)"""
     try:
         user: User = request.user
-        data = user.get_self()
-        data.pop("password")
-        data["id"] = user.id
+        data = user.get_self_response()
 
         return get_200(data)
     except Exception as e:
@@ -52,10 +50,7 @@ def add_user():
 
         emailer.send_send_password_email(user.email, new_password)
 
-        data = user.get_self()
-        data.pop("password")
-        data.pop("notifications")
-        data["id"] = user.id
+        data = user.get_self_response()
 
         return get_200(data)
     except Exception as e:
@@ -75,10 +70,7 @@ def update_user():
         if not user.update(user_data):
             return get_500("Error in update_user")
 
-        data = user.get_self()
-        data.pop("password")
-        data["token"] = user.generate_token()
-        data["id"] = user.id
+        data = user.get_self_response(user.generate_token())
 
         return get_200(data)
     except Exception as e:
@@ -108,10 +100,7 @@ def update_admin():
         if not user.update(user_data):
             return get_500("Error in update_user")
 
-        data = user.get_self()
-        data.pop("password")
-        data["token"] = user.generate_token()
-        data["id"] = user.id
+        data = user.get_self_response()
 
         return get_200(data)
     except Exception as e:
@@ -125,7 +114,7 @@ def get_users_by_role():
     try:
         role = request.form.get("role")
 
-        if role == "USER" or role == "ADMIN":
+        if role == "USER":
             token = request.headers.get('Authorization')
             if not token:
                 return get_401("No token provided")
@@ -138,14 +127,18 @@ def get_users_by_role():
                 exp_timestamp = payload['expired_at']
                 if datetime.fromtimestamp(exp_timestamp, tz=timezone.utc) < datetime.now(timezone.utc):
                     return get_401("Token has expired")
+                
+            user_admin = User(id=payload.get("id"))
+            if user_admin.get() is None:
+                return get_401("User not found")
             
-        users = User().get_by_role(role)
+            if user_admin.role not in [UserRoles.ADMIN, UserRoles.REGIONAL_ADMIN, UserRoles.CENTRAL_ADMIN]:
+                return get_403("Access denied")
+            
+        users: list[User] = User().get_by_role(role)
         data = []
         for user in users:
-            temp = user.get_self()
-            temp.pop("password")
-            temp["id"] = user.id
-            data.append(temp)
+            data.append(user.get_self_response())
 
         return get_200(data)
     except Exception as e:
@@ -168,7 +161,7 @@ def delete_user():
             return get_404("User not found")
 
         user.delete()
-        return get_200({})
+        return get_200("Successfully deleted")
     except Exception as e:
         logger.error(f"Error in delete_user: {e}")
         return get_500("Error in delete_user")
@@ -220,8 +213,14 @@ def get_subscriber():
             if event.get() is None:
                 continue
 
+            if event.representative is not None:
+                representative = User(event.representative)
+                if representative.get():
+                    event.representative = representative.get_self_response()
+
             data = event.get_self()
             data["id"] = event.id
+            data.pop("admin_description")
             res.append(data)
 
         return get_200(res)
@@ -252,14 +251,11 @@ def unsubscribe():
                 if event.representative is not None:
                     representative = User(event.representative)
                     if user.get():
-                        user_data = representative.get_self()
-                        user_data.pop("password")
-                        user_data["id"] = representative.id
-
-                        event.representative = user_data
+                        event.representative = representative.get_self_response()
 
                 data = event.get_self()
                 data["id"] = event.id
+                data.pop("admin_description")
                 res.append(data)
                 break
 
@@ -304,14 +300,11 @@ def set_up_notification():
             if event.representative is not None:
                 representative = User(event.representative)
                 if user.get():
-                    user_data = representative.get_self()
-                    user_data.pop("password")
-                    user_data["id"] = representative.id
-
-                    event.representative = user_data
+                    event.representative = representative.get_self_response()
 
             data = event.get_self()
             data["id"] = event.id
+            data.pop("admin_description")
             res.append(data)
 
         return get_200(res)
@@ -336,14 +329,11 @@ def get_notifications():
             if event.representative is not None:
                 representative = User(event.representative)
                 if representative.get():
-                    user_data = representative.get_self()
-                    user_data.pop("password")
-                    user_data["id"] = representative.id
-
-                    event.representative = user_data
+                    event.representative = representative.get_self_response()
 
             data = event.get_self()
             data["id"] = event.id
+            data.pop("admin_description")
             res.append(data)
 
         return get_200(res)

@@ -33,10 +33,7 @@ def login():
         if not user.is_verified:
             return get_400("User is not verified")
         
-        data = user.get_self()
-        data["id"] = user.id
-        data.pop("password")
-        data["token"] = user.generate_token()
+        data = user.get_self_response(user.generate_token())
         
         return get_200(data)
     except Exception as e:
@@ -136,10 +133,7 @@ def verify_token():
 
         token.delete()
 
-        user_data = user.get_self()
-        user_data["id"] = user.id
-        user_data.pop("password")
-        user_data["token"] = user.generate_token()
+        user_data = user.get_self_response(user.generate_token())
 
         return get_200(user_data)
     except Exception as e:

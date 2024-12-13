@@ -117,6 +117,17 @@ class User:
         except Exception as e:
             print(e)
             raise e
+        
+    def get_self_response(self, token: str = None):
+        data = self.get_self()
+        data["id"] = self.id
+        data.pop("password")
+        data["role"] = self.role.value if self.role is not None else None
+        data["region"] = self.region.value if self.region is not None else None
+
+        if token:
+            data["token"] = token
+        return data
 
     def check_update(self, data: dict):
         if data.get("name") is not None:

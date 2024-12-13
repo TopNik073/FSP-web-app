@@ -48,11 +48,7 @@ def api_get_fsp_events():
             if event.representative is not None:
                 user = User(event.representative)
                 if user.get():
-                    user_data = user.get_self()
-                    user_data.pop("password")
-                    user_data["id"] = user.id
-
-                    event.representative = user_data
+                    event.representative = user.get_self_response()
 
             data = event.get_self()
             data["id"] = event.id
@@ -122,11 +118,7 @@ def api_add_fsp_event():
         if event.representative is not None:
             user = User(event.representative)
             if user.get():
-                user_data = user.get_self()
-                user_data.pop("password")
-                user_data["id"] = user.id
-
-                event.representative = user_data
+                event.representative = user.get_self_response()
 
         data = event.get_self()
         data["id"] = event.id
@@ -181,11 +173,7 @@ def api_update_fsp_event():
         if event.representative is not None:
             user = User(event.representative)
             if user.get():
-                user_data = user.get_self()
-                user_data.pop("password")
-                user_data["id"] = user.id
-
-                event.representative = user_data
+                event.representative = user.get_self_response()
 
         data = event.get_self()
         data["id"] = event.id
@@ -226,11 +214,7 @@ def api_archive_fsp_event():
         if archive_event.representative is not None:
             user = User(archive_event.representative)
             if user.get():
-                user_data = user.get_self()
-                user_data.pop("password")
-                user_data["id"] = user.id
-
-                archive_event.representative = user_data
+                archive_event.representative = user.get_self_response()
 
         data = archive_event.get_self()
         data["id"] = archive_event.id
@@ -270,11 +254,7 @@ def api_restore_fsp_event():
         if event.representative is not None:
             user = User(event.representative)
             if user.get():
-                user_data = user.get_self()
-                user_data.pop("password")
-                user_data["id"] = user.id
-
-                event.representative = user_data
+                event.representative = user.get_self_response()
 
         data = event.get_self()
         data["id"] = event.id

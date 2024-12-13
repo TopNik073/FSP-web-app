@@ -305,6 +305,7 @@ test_events = [
 async def main():
     # Добавляем новые записи
     await asyncio.sleep(20)
+    FSPevent.drop_table()
     for i, event in enumerate(test_events, 1):
         try:
             user = User()

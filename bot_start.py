@@ -28,7 +28,7 @@ async def main():
     await test_fsp_events.main()
 
     logger.info("Запуск бота")
-    # await dp.start_polling(bot)
+    await dp.start_polling(bot)
 
 
 if __name__ == "__main__":

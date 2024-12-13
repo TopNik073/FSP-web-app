@@ -11,9 +11,8 @@ load_dotenv()
 
 @dp.message(Command("start"))
 async def callback_start(message: Message, state: FSMContext):
-    user = message.from_user
-    url = f"https://{os.environ.get('MAIN_URL')}/auth/register?tg_id={user.id}&username={user.username}"
+    url = f"https://{os.environ.get('MAIN_URL')}"
     markup = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="Open Web App", url=url)]]
     )
-    await message.answer(f"Здравствуйте! Регистрация по кнопке ниже, {user.first_name}!", reply_markup=markup)
+    await message.answer(f"Здравствуйте! Этот канал предназначен для уведомлений о спортивных событиях. Вы можете подписаться на события, которые вас интересуют, и получать уведомления о них.\nГлавный сайт👇", reply_markup=markup)
